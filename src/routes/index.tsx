@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { z } from "zod";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -138,6 +139,12 @@ const hackathonsSeed: Hackathon[] = [
 const platforms: Platform[] = ["Devpost", "Devfolio", "Kaggle", "Discord", "X", "LinkedIn", "Other"];
 const statuses: Array<Status | "all"> = ["all", "watching", "registered", "building", "submitted", "archived"];
 
+const captureSchema = z.object({
+  link: z.string().trim().min(4, "Paste a URL or post text first.").max(1_500, "Keep captures under 1,500 characters."),
+  notes: z.string().trim().max(800, "Notes must stay under 800 characters."),
+  platform: z.enum(["Devpost", "Devfolio", "Kaggle", "Discord", "X", "LinkedIn", "Other"]),
+});
+
 const today = new Date("2026-04-25T10:00:00");
 
 function daysUntil(date: string) {
@@ -168,6 +175,94 @@ function inferPlatform(value: string): Platform {
   if (lower.includes("twitter") || lower.includes("x.com")) return "X";
   if (lower.includes("linkedin")) return "LinkedIn";
   return "Other";
+}
+
+function normalizeDate(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function extractDeadline(value: string) {
+  const explicitDate = value.match(/\b(20\d{2})[-/.](0?[1-9]|1[0-2])[-/.](0?[1-9]|[12]\d|3[01])\b/);
+  if (explicitDate) {
+    const [, year, month, day] = explicitDate;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+
+  const namedMonth = value.match(
+    /\b(?:deadline|due|ends|submission|submit by|closes)?\s*:?[\s-]*((?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(20\d{2}))?/i,
+  );
+
+  if (namedMonth) {
+    const monthIndex = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].findIndex((month) =>
+      namedMonth[1].toLowerCase().startsWith(month),
+    );
+    const year = Number(namedMonth[3] ?? today.getFullYear());
+    return normalizeDate(new Date(year, monthIndex, Number(namedMonth[2])));
+  }
+
+  const fallback = new Date(today);
+  fallback.setDate(fallback.getDate() + 14);
+  return normalizeDate(fallback);
+}
+
+function titleFromSlug(slug: string) {
+  return slug
+    .replace(/\?.*$/, "")
+    .replace(/[#_]+/g, "-")
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function extractHackathonName(value: string, platform: Platform) {
+  const named = value.match(/(?:hackathon|challenge|competition|bounty|sprint)\s*[:—-]\s*([^\n|]{4,80})/i);
+  if (named) return named[1].trim();
+
+  try {
+    const url = new URL(value.match(/https?:\/\/\S+/)?.[0] ?? value);
+    const segments = url.pathname.split("/").filter(Boolean);
+    const lastMeaningful = [...segments].reverse().find((segment) => !["hackathons", "competitions", "projects", "status"].includes(segment));
+    if (lastMeaningful) return titleFromSlug(lastMeaningful);
+  } catch {
+    const firstLine = value.split("\n").find((line) => line.trim().length > 3) ?? "Captured Hackathon";
+    return firstLine.replace(/https?:\/\/\S+/g, "").trim().slice(0, 64) || `${platform} Hackathon`;
+  }
+
+  return `${platform} Hackathon`;
+}
+
+function sourceLinkFrom(value: string) {
+  return value.match(/https?:\/\/\S+/)?.[0]?.replace(/[),.;]+$/, "") ?? value.trim();
+}
+
+function buildTrackedHackathon(input: z.infer<typeof captureSchema>): Hackathon {
+  const platform = input.platform === "Other" ? inferPlatform(input.link) : input.platform;
+  const submissionDeadline = extractDeadline(`${input.link}\n${input.notes}`);
+  const registration = new Date(`${submissionDeadline}T00:00:00`);
+  registration.setDate(registration.getDate() - 3);
+  const title = extractHackathonName(input.link, platform);
+
+  return {
+    id: Date.now(),
+    title,
+    platform,
+    source: sourceLinkFrom(input.link),
+    theme: input.notes || "Captured from pasted source; review theme and prize details.",
+    status: "watching",
+    priority: daysUntil(submissionDeadline) <= 3 ? "critical" : daysUntil(submissionDeadline) <= 7 ? "high" : "medium",
+    registrationDeadline: normalizeDate(registration),
+    submissionDeadline,
+    prize: "Review source for prizes, tracks, and eligibility.",
+    notes: input.notes || `Auto-captured from ${platform}; verify extracted deadline before committing effort.`,
+    assets: [sourceLinkFrom(input.link)],
+    tasks: [
+      { id: 1, label: "Verify deadline and eligibility", done: false, due: normalizeDate(registration) },
+      { id: 2, label: "Decide go / no-go", done: false, due: normalizeDate(registration) },
+      { id: 3, label: "Create repo or notebook", done: false, due: submissionDeadline },
+      { id: 4, label: "Submit final project", done: false, due: submissionDeadline },
+    ],
+  };
 }
 
 function Index() {
