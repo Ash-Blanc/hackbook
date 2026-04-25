@@ -465,13 +465,16 @@ function Index() {
               </div>
             </Panel>
 
-            <Panel title="capture --source" action="paste now, classify later">
+            <Panel title="capture --source" action="paste, extract, track">
               <form onSubmit={captureOpportunity} className="grid gap-3">
                 <div className="grid gap-2 md:grid-cols-[1fr_auto]">
                   <input
                     value={captureLink}
-                    onChange={(event) => setCaptureLink(event.target.value)}
-                    placeholder="paste Devpost, Devfolio, Kaggle, Discord, X, LinkedIn, or any URL/post..."
+                    onChange={(event) => {
+                      setCaptureLink(event.target.value);
+                      if (capturePlatform === "Other") setCapturePlatform(inferPlatform(event.target.value));
+                    }}
+                    placeholder="paste link or post text with title + deadline, e.g. ... deadline May 12, 2026"
                     className="min-h-11 rounded-md border border-input bg-input px-3 font-mono text-sm text-foreground outline-none transition focus:border-ring"
                   />
                   <select
@@ -487,11 +490,12 @@ function Index() {
                 <textarea
                   value={captureNotes}
                   onChange={(event) => setCaptureNotes(event.target.value)}
-                  placeholder="why this might be worth tracking, sponsor notes, prize, deadline hints..."
+                  placeholder="optional: paste post copy, deadline hints, sponsor notes, prize, or track details..."
                   className="min-h-20 resize-none rounded-md border border-input bg-input px-3 py-2 font-mono text-sm text-foreground outline-none transition focus:border-ring"
                 />
+                {captureError && <p className="font-mono text-xs text-destructive">{captureError}</p>}
                 <button className="min-h-11 rounded-md border border-primary bg-primary px-4 font-mono text-sm font-semibold text-primary-foreground transition hover:opacity-90">
-                  queue --review
+                  extract --track
                 </button>
               </form>
               <div className="mt-4 grid gap-2">
