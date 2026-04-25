@@ -283,6 +283,7 @@ function Index() {
   const [captureLink, setCaptureLink] = useState("");
   const [captureNotes, setCaptureNotes] = useState("");
   const [capturePlatform, setCapturePlatform] = useState<Platform>("Other");
+  const [captureError, setCaptureError] = useState("");
 
   const filteredHackathons = useMemo(() => {
     return hackathons.filter((hackathon) => {
@@ -327,18 +328,28 @@ function Index() {
 
   function captureOpportunity(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!captureLink.trim()) return;
-    const platform = capturePlatform === "Other" ? inferPlatform(captureLink) : capturePlatform;
+    const parsed = captureSchema.safeParse({ link: captureLink, notes: captureNotes, platform: capturePlatform });
+    if (!parsed.success) {
+      setCaptureError(parsed.error.issues[0]?.message ?? "Could not parse this capture.");
+      return;
+    }
+
+    const trackedHackathon = buildTrackedHackathon(parsed.data);
     setCaptures((items) => [
       {
-        id: Date.now(),
-        platform,
-        link: captureLink.trim(),
-        notes: captureNotes.trim() || "Review and decide whether to track.",
-        createdAt: "queued just now",
+        id: trackedHackathon.id,
+        platform: trackedHackathon.platform,
+        link: trackedHackathon.source,
+        notes: `tracked: ${trackedHackathon.title} · submit ${trackedHackathon.submissionDeadline}`,
+        createdAt: "tracked just now",
       },
       ...items,
     ]);
+    setHackathons((items) => [trackedHackathon, ...items]);
+    setSelectedId(trackedHackathon.id);
+    setStatusFilter("all");
+    setPlatformFilter("all");
+    setCaptureError("");
     setCaptureLink("");
     setCaptureNotes("");
     setCapturePlatform("Other");
