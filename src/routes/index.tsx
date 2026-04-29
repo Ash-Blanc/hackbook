@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { z } from "zod";
+import { DiscoverPanel } from "@/components/discover-ui";
+import type { DiscoveredHackathon } from "@/components/discover-panel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -8,7 +10,8 @@ export const Route = createFileRoute("/")({
       { title: "Hackathon Command Center" },
       {
         name: "description",
-        content: "Track hackathon submissions, deadlines, source links, tasks, and progress in one lightweight command center.",
+        content:
+          "Track hackathon submissions, deadlines, source links, tasks, and progress in one lightweight command center.",
       },
       { property: "og:title", content: "Hackathon Command Center" },
       {
@@ -136,11 +139,30 @@ const hackathonsSeed: Hackathon[] = [
   },
 ];
 
-const platforms: Platform[] = ["Devpost", "Devfolio", "Kaggle", "Discord", "X", "LinkedIn", "Other"];
-const statuses: Array<Status | "all"> = ["all", "watching", "registered", "building", "submitted", "archived"];
+const platforms: Platform[] = [
+  "Devpost",
+  "Devfolio",
+  "Kaggle",
+  "Discord",
+  "X",
+  "LinkedIn",
+  "Other",
+];
+const statuses: Array<Status | "all"> = [
+  "all",
+  "watching",
+  "registered",
+  "building",
+  "submitted",
+  "archived",
+];
 
 const captureSchema = z.object({
-  link: z.string().trim().min(4, "Paste a URL or post text first.").max(1_500, "Keep captures under 1,500 characters."),
+  link: z
+    .string()
+    .trim()
+    .min(4, "Paste a URL or post text first.")
+    .max(1_500, "Keep captures under 1,500 characters."),
   notes: z.string().trim().max(800, "Notes must stay under 800 characters."),
   platform: z.enum(["Devpost", "Devfolio", "Kaggle", "Discord", "X", "LinkedIn", "Other"]),
 });
@@ -193,9 +215,20 @@ function extractDeadline(value: string) {
   );
 
   if (namedMonth) {
-    const monthIndex = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].findIndex((month) =>
-      namedMonth[1].toLowerCase().startsWith(month),
-    );
+    const monthIndex = [
+      "jan",
+      "feb",
+      "mar",
+      "apr",
+      "may",
+      "jun",
+      "jul",
+      "aug",
+      "sep",
+      "oct",
+      "nov",
+      "dec",
+    ].findIndex((month) => namedMonth[1].toLowerCase().startsWith(month));
     const year = Number(namedMonth[3] ?? today.getFullYear());
     return normalizeDate(new Date(year, monthIndex, Number(namedMonth[2])));
   }
@@ -216,17 +249,27 @@ function titleFromSlug(slug: string) {
 }
 
 function extractHackathonName(value: string, platform: Platform) {
-  const named = value.match(/(?:hackathon|challenge|competition|bounty|sprint)\s*[:—-]\s*([^\n|]{4,80})/i);
+  const named = value.match(
+    /(?:hackathon|challenge|competition|bounty|sprint)\s*[:—-]\s*([^\n|]{4,80})/i,
+  );
   if (named) return named[1].trim();
 
   try {
     const url = new URL(value.match(/https?:\/\/\S+/)?.[0] ?? value);
     const segments = url.pathname.split("/").filter(Boolean);
-    const lastMeaningful = [...segments].reverse().find((segment) => !["hackathons", "competitions", "projects", "status"].includes(segment));
+    const lastMeaningful = [...segments]
+      .reverse()
+      .find((segment) => !["hackathons", "competitions", "projects", "status"].includes(segment));
     if (lastMeaningful) return titleFromSlug(lastMeaningful);
   } catch {
-    const firstLine = value.split("\n").find((line) => line.trim().length > 3) ?? "Captured Hackathon";
-    return firstLine.replace(/https?:\/\/\S+/g, "").trim().slice(0, 64) || `${platform} Hackathon`;
+    const firstLine =
+      value.split("\n").find((line) => line.trim().length > 3) ?? "Captured Hackathon";
+    return (
+      firstLine
+        .replace(/https?:\/\/\S+/g, "")
+        .trim()
+        .slice(0, 64) || `${platform} Hackathon`
+    );
   }
 
   return `${platform} Hackathon`;
@@ -250,14 +293,26 @@ function buildTrackedHackathon(input: z.infer<typeof captureSchema>): Hackathon 
     source: sourceLinkFrom(input.link),
     theme: input.notes || "Captured from pasted source; review theme and prize details.",
     status: "watching",
-    priority: daysUntil(submissionDeadline) <= 3 ? "critical" : daysUntil(submissionDeadline) <= 7 ? "high" : "medium",
+    priority:
+      daysUntil(submissionDeadline) <= 3
+        ? "critical"
+        : daysUntil(submissionDeadline) <= 7
+          ? "high"
+          : "medium",
     registrationDeadline: normalizeDate(registration),
     submissionDeadline,
     prize: "Review source for prizes, tracks, and eligibility.",
-    notes: input.notes || `Auto-captured from ${platform}; verify extracted deadline before committing effort.`,
+    notes:
+      input.notes ||
+      `Auto-captured from ${platform}; verify extracted deadline before committing effort.`,
     assets: [sourceLinkFrom(input.link)],
     tasks: [
-      { id: 1, label: "Verify deadline and eligibility", done: false, due: normalizeDate(registration) },
+      {
+        id: 1,
+        label: "Verify deadline and eligibility",
+        done: false,
+        due: normalizeDate(registration),
+      },
       { id: 2, label: "Decide go / no-go", done: false, due: normalizeDate(registration) },
       { id: 3, label: "Create repo or notebook", done: false, due: submissionDeadline },
       { id: 4, label: "Submit final project", done: false, due: submissionDeadline },
@@ -294,7 +349,8 @@ function Index() {
     });
   }, [hackathons, platformFilter, query, statusFilter]);
 
-  const selectedHackathon = hackathons.find((hackathon) => hackathon.id === selectedId) ?? hackathons[0];
+  const selectedHackathon =
+    hackathons.find((hackathon) => hackathon.id === selectedId) ?? hackathons[0];
 
   const deadlineQueue = useMemo(() => {
     return hackathons
@@ -306,10 +362,64 @@ function Index() {
       .slice(0, 6);
   }, [hackathons]);
 
-  const taskDebt = hackathons.flatMap((hackathon) => hackathon.tasks.filter((task) => !task.done)).length;
-  const activeCount = hackathons.filter((hackathon) => !["submitted", "archived"].includes(hackathon.status)).length;
+  const taskDebt = hackathons.flatMap((hackathon) =>
+    hackathon.tasks.filter((task) => !task.done),
+  ).length;
+  const activeCount = hackathons.filter(
+    (hackathon) => !["submitted", "archived"].includes(hackathon.status),
+  ).length;
   const submittedCount = hackathons.filter((hackathon) => hackathon.status === "submitted").length;
   const urgentCount = deadlineQueue.filter((item) => daysUntil(item.date) <= 3).length;
+
+  function importDiscovered(discovered: DiscoveredHackathon) {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    const registration = new Date(discovered.registrationDeadline);
+    const submission = new Date(discovered.submissionDeadline);
+    const daysUntilSubmit = Math.ceil((submission.getTime() - today.getTime()) / 86_400_000);
+    const priority: Priority =
+      daysUntilSubmit <= 3 ? "critical" : daysUntilSubmit <= 7 ? "high" : "medium";
+
+    const nextTasks: Task[] = [
+      {
+        id: 1,
+        label: "Verify deadline and eligibility",
+        done: false,
+        due: discovered.registrationDeadline,
+      },
+      { id: 2, label: "Decide go / no-go", done: false, due: discovered.registrationDeadline },
+      { id: 3, label: "Create repo or notebook", done: false, due: discovered.submissionDeadline },
+      { id: 4, label: "Submit final project", done: false, due: discovered.submissionDeadline },
+    ];
+
+    const nextHackathon: Hackathon = {
+      id,
+      title: discovered.title,
+      platform: discovered.platform,
+      source: discovered.source,
+      theme: discovered.theme,
+      status: "watching",
+      priority,
+      registrationDeadline: discovered.registrationDeadline,
+      submissionDeadline: discovered.submissionDeadline,
+      prize: discovered.prize,
+      notes: `Auto-imported from ${discovered.platform}. ${discovered.location}. ${discovered.timeLeft}.`,
+      assets: [discovered.source],
+      tasks: nextTasks,
+    };
+
+    setHackathons((items) => [nextHackathon, ...items]);
+    setSelectedId(id);
+    setCaptures((items) => [
+      {
+        id,
+        platform: discovered.platform,
+        link: discovered.source,
+        notes: `imported: ${discovered.title} · submit ${discovered.submissionDeadline}`,
+        createdAt: "imported just now",
+      },
+      ...items,
+    ]);
+  }
 
   function toggleTask(hackathonId: number, taskId: number) {
     setHackathons((items) =>
@@ -328,7 +438,11 @@ function Index() {
 
   function captureOpportunity(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const parsed = captureSchema.safeParse({ link: captureLink, notes: captureNotes, platform: capturePlatform });
+    const parsed = captureSchema.safeParse({
+      link: captureLink,
+      notes: captureNotes,
+      platform: capturePlatform,
+    });
     if (!parsed.success) {
       setCaptureError(parsed.error.issues[0]?.message ?? "Could not parse this capture.");
       return;
@@ -364,7 +478,9 @@ function Index() {
         <header className="grid gap-4 rounded-md border border-border bg-card/85 p-4 shadow-[var(--shadow-terminal)] backdrop-blur md:grid-cols-[1fr_auto] md:items-end">
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2 font-mono text-xs text-muted-foreground">
-              <span className="rounded-sm border border-border bg-secondary px-2 py-1 text-accent">~/hackathons</span>
+              <span className="rounded-sm border border-border bg-secondary px-2 py-1 text-accent">
+                ~/hackathons
+              </span>
               <span>status: synced locally</span>
               <span>mode: in-app reminders</span>
             </div>
@@ -373,7 +489,8 @@ function Index() {
               <span className="block text-accent">track --active --deadline-aware</span>
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-              One dense workspace for opportunities, build progress, task debt, source links, and submission readiness.
+              One dense workspace for opportunities, build progress, task debt, source links, and
+              submission readiness.
             </p>
           </div>
           <div className="rounded-md border border-border bg-secondary p-3 font-mono text-xs text-muted-foreground">
@@ -406,7 +523,9 @@ function Index() {
                   className="min-h-10 rounded-md border border-input bg-input px-3 font-mono text-sm text-foreground outline-none transition focus:border-ring"
                 >
                   {statuses.map((status) => (
-                    <option key={status} value={status}>{status}</option>
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
                   ))}
                 </select>
                 <select
@@ -416,7 +535,9 @@ function Index() {
                 >
                   <option value="all">all sources</option>
                   {platforms.map((platform) => (
-                    <option key={platform} value={platform}>{platform}</option>
+                    <option key={platform} value={platform}>
+                      {platform}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -430,17 +551,33 @@ function Index() {
                       key={hackathon.id}
                       onClick={() => setSelectedId(hackathon.id)}
                       className={`group rounded-md border p-4 text-left transition hover:-translate-y-0.5 hover:border-ring hover:bg-secondary ${
-                        selectedHackathon.id === hackathon.id ? "border-ring bg-secondary" : "border-border bg-card"
+                        selectedHackathon.id === hackathon.id
+                          ? "border-ring bg-secondary"
+                          : "border-border bg-card"
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-mono text-xs text-accent">{hackathon.platform}</span>
+                            <span className="font-mono text-xs text-accent">
+                              {hackathon.platform}
+                            </span>
                             <Badge>{hackathon.status}</Badge>
-                            <Badge tone={hackathon.priority === "critical" ? "danger" : hackathon.priority === "high" ? "warning" : "muted"}>{hackathon.priority}</Badge>
+                            <Badge
+                              tone={
+                                hackathon.priority === "critical"
+                                  ? "danger"
+                                  : hackathon.priority === "high"
+                                    ? "warning"
+                                    : "muted"
+                              }
+                            >
+                              {hackathon.priority}
+                            </Badge>
                           </div>
-                          <h2 className="mt-2 font-mono text-lg font-semibold text-foreground">{hackathon.title}</h2>
+                          <h2 className="mt-2 font-mono text-lg font-semibold text-foreground">
+                            {hackathon.title}
+                          </h2>
                           <p className="mt-1 text-sm text-muted-foreground">{hackathon.theme}</p>
                         </div>
                         <Badge tone={urgent.tone}>{urgent.command}</Badge>
@@ -452,11 +589,15 @@ function Index() {
                             <span>{percent}%</span>
                           </div>
                           <div className="h-2 rounded-sm bg-muted">
-                            <div className="h-full rounded-sm bg-primary" style={{ width: `${percent}%` }} />
+                            <div
+                              className="h-full rounded-sm bg-primary"
+                              style={{ width: `${percent}%` }}
+                            />
                           </div>
                         </div>
                         <div className="font-mono text-xs text-muted-foreground">
-                          submit: <span className="text-foreground">{hackathon.submissionDeadline}</span>
+                          submit:{" "}
+                          <span className="text-foreground">{hackathon.submissionDeadline}</span>
                         </div>
                       </div>
                     </button>
@@ -472,7 +613,8 @@ function Index() {
                     value={captureLink}
                     onChange={(event) => {
                       setCaptureLink(event.target.value);
-                      if (capturePlatform === "Other") setCapturePlatform(inferPlatform(event.target.value));
+                      if (capturePlatform === "Other")
+                        setCapturePlatform(inferPlatform(event.target.value));
                     }}
                     placeholder="paste link or post text with title + deadline, e.g. ... deadline May 12, 2026"
                     className="min-h-11 rounded-md border border-input bg-input px-3 font-mono text-sm text-foreground outline-none transition focus:border-ring"
@@ -483,7 +625,9 @@ function Index() {
                     className="min-h-11 rounded-md border border-input bg-input px-3 font-mono text-sm text-foreground outline-none transition focus:border-ring"
                   >
                     {platforms.map((platform) => (
-                      <option key={platform} value={platform}>{platform}</option>
+                      <option key={platform} value={platform}>
+                        {platform}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -493,24 +637,33 @@ function Index() {
                   placeholder="optional: paste post copy, deadline hints, sponsor notes, prize, or track details..."
                   className="min-h-20 resize-none rounded-md border border-input bg-input px-3 py-2 font-mono text-sm text-foreground outline-none transition focus:border-ring"
                 />
-                {captureError && <p className="font-mono text-xs text-destructive">{captureError}</p>}
+                {captureError && (
+                  <p className="font-mono text-xs text-destructive">{captureError}</p>
+                )}
                 <button className="min-h-11 rounded-md border border-primary bg-primary px-4 font-mono text-sm font-semibold text-primary-foreground transition hover:opacity-90">
                   extract --track
                 </button>
               </form>
               <div className="mt-4 grid gap-2">
                 {captures.map((capture) => (
-                  <div key={capture.id} className="rounded-md border border-border bg-secondary p-3">
+                  <div
+                    key={capture.id}
+                    className="rounded-md border border-border bg-secondary p-3"
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-xs">
                       <Badge>{capture.platform}</Badge>
                       <span className="text-muted-foreground">{capture.createdAt}</span>
                     </div>
-                    <p className="mt-2 break-words font-mono text-sm text-foreground">{capture.link}</p>
+                    <p className="mt-2 break-words font-mono text-sm text-foreground">
+                      {capture.link}
+                    </p>
                     <p className="mt-1 text-sm text-muted-foreground">{capture.notes}</p>
                   </div>
                 ))}
               </div>
             </Panel>
+
+            <DiscoverPanel onImport={importDiscovered} />
           </div>
 
           <aside className="space-y-5">
@@ -519,15 +672,22 @@ function Index() {
                 {deadlineQueue.map((item) => {
                   const urgent = urgencyFor(item.date);
                   return (
-                    <div key={`${item.hackathon.id}-${item.type}`} className="rounded-md border border-border bg-secondary p-3">
+                    <div
+                      key={`${item.hackathon.id}-${item.type}`}
+                      className="rounded-md border border-border bg-secondary p-3"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="font-mono text-xs text-accent">{item.type} deadline</div>
-                          <div className="mt-1 text-sm font-semibold text-foreground">{item.hackathon.title}</div>
+                          <div className="mt-1 text-sm font-semibold text-foreground">
+                            {item.hackathon.title}
+                          </div>
                         </div>
                         <Badge tone={urgent.tone}>{urgent.label}</Badge>
                       </div>
-                      <div className="mt-2 font-mono text-xs text-muted-foreground">{item.date} · {urgent.command}</div>
+                      <div className="mt-2 font-mono text-xs text-muted-foreground">
+                        {item.date} · {urgent.command}
+                      </div>
                     </div>
                   );
                 })}
@@ -537,14 +697,19 @@ function Index() {
             <Panel title="submit --progress" action={selectedHackathon.title}>
               <div className="mb-4 rounded-md border border-border bg-secondary p-3">
                 <div className="font-mono text-xs text-accent">selected</div>
-                <h2 className="mt-1 font-mono text-xl font-semibold text-foreground">{selectedHackathon.title}</h2>
+                <h2 className="mt-1 font-mono text-xl font-semibold text-foreground">
+                  {selectedHackathon.title}
+                </h2>
                 <p className="mt-2 text-sm text-muted-foreground">{selectedHackathon.notes}</p>
               </div>
               <div className="grid gap-2">
                 {selectedHackathon.tasks.map((task) => {
                   const urgent = urgencyFor(task.due);
                   return (
-                    <label key={task.id} className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-card p-3 transition hover:bg-secondary">
+                    <label
+                      key={task.id}
+                      className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-card p-3 transition hover:bg-secondary"
+                    >
                       <input
                         type="checkbox"
                         checked={task.done}
@@ -552,10 +717,18 @@ function Index() {
                         className="mt-1 h-4 w-4 accent-[var(--primary)]"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className={`block text-sm ${task.done ? "text-muted-foreground line-through" : "text-foreground"}`}>{task.label}</span>
-                        <span className="mt-1 block font-mono text-xs text-muted-foreground">due {task.due}</span>
+                        <span
+                          className={`block text-sm ${task.done ? "text-muted-foreground line-through" : "text-foreground"}`}
+                        >
+                          {task.label}
+                        </span>
+                        <span className="mt-1 block font-mono text-xs text-muted-foreground">
+                          due {task.due}
+                        </span>
                       </span>
-                      <Badge tone={task.done ? "success" : urgent.tone}>{task.done ? "done" : urgent.label}</Badge>
+                      <Badge tone={task.done ? "success" : urgent.tone}>
+                        {task.done ? "done" : urgent.label}
+                      </Badge>
                     </label>
                   );
                 })}
@@ -565,7 +738,10 @@ function Index() {
             <Panel title="notes --assets" action="links, docs, repo">
               <div className="grid gap-2">
                 {selectedHackathon.assets.map((asset) => (
-                  <div key={asset} className="flex items-center justify-between gap-3 rounded-md border border-border bg-secondary p-3 font-mono text-xs">
+                  <div
+                    key={asset}
+                    className="flex items-center justify-between gap-3 rounded-md border border-border bg-secondary p-3 font-mono text-xs"
+                  >
                     <span className="break-all text-foreground">{asset}</span>
                     <span className="text-accent">linked</span>
                   </div>
@@ -583,7 +759,17 @@ function Index() {
   );
 }
 
-function Metric({ label, value, command, tone = "default" }: { label: string; value: number; command: string; tone?: "default" | "warning" | "danger" | "success" }) {
+function Metric({
+  label,
+  value,
+  command,
+  tone = "default",
+}: {
+  label: string;
+  value: number;
+  command: string;
+  tone?: "default" | "warning" | "danger" | "success";
+}) {
   return (
     <div className="rounded-md border border-border bg-card/85 p-4 shadow-[var(--shadow-terminal)] backdrop-blur">
       <div className="flex items-center justify-between gap-2 font-mono text-xs text-muted-foreground">
@@ -595,7 +781,15 @@ function Metric({ label, value, command, tone = "default" }: { label: string; va
   );
 }
 
-function Panel({ title, action, children }: { title: string; action: string; children: React.ReactNode }) {
+function Panel({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="rounded-md border border-border bg-card/85 p-4 shadow-[var(--shadow-terminal)] backdrop-blur">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
@@ -619,7 +813,9 @@ function Badge({ children, tone = "muted" }: { children: React.ReactNode; tone?:
             ? "border-info bg-info/15 text-info"
             : "border-border bg-muted text-muted-foreground";
   return (
-    <span className={`inline-flex max-w-full items-center rounded-sm border px-2 py-1 font-mono text-[11px] leading-none ${toneClass}`}>
+    <span
+      className={`inline-flex max-w-full items-center rounded-sm border px-2 py-1 font-mono text-[11px] leading-none ${toneClass}`}
+    >
       {children}
     </span>
   );

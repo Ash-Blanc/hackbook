@@ -30,10 +30,17 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Hackathon Command Center" },
-      { name: "description", content: "Track hackathon submissions, deadlines, tasks, notes, and source links in one command center." },
+      {
+        name: "description",
+        content:
+          "Track hackathon submissions, deadlines, tasks, notes, and source links in one command center.",
+      },
       { name: "author", content: "Hackathon Command Center" },
       { property: "og:title", content: "Hackathon Command Center" },
-      { property: "og:description", content: "A CLI-inspired workspace for managing active and upcoming hackathons." },
+      {
+        property: "og:description",
+        content: "A CLI-inspired workspace for managing active and upcoming hackathons.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "Hackathon Command Center" },

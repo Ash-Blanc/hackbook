@@ -10,14 +10,14 @@ It is a single workspace to capture hackathon links in seconds, track deadlines 
 
 ## What it does
 
-| Feature | Why it matters |
-|---|---|
-| **Hybrid URL capture** | Paste a link from any platform (Devpost, Devfolio, Kaggle, Twitter, Discord, LinkedIn). Hackbook stores it instantly so nothing gets buried in notification noise. |
-| **Status pipeline** | `watching → registered → building → submitted → archived`. Know exactly where every hackathon stands without opening ten tabs. |
-| **Per-hackathon tasks** | Break each event into checklists with due dates. No more "oh I still need a demo video" at 23:55. |
-| **Priority + deadline radar** | `critical / high / medium / low` tags plus registration and submission deadlines. The right thing surfaces at the right time. |
-| **Asset links** | Pin GitHub repos, pitch decks, demo videos and dataset cards directly to the hackathon card. Everything lives in one place. |
-| **Built for speed** | Keyboard-friendly, no bloat. Open, capture, close. Back to hacking. |
+| Feature                       | Why it matters                                                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Hybrid URL capture**        | Paste a link from any platform (Devpost, Devfolio, Kaggle, Twitter, Discord, LinkedIn). Hackbook stores it instantly so nothing gets buried in notification noise. |
+| **Status pipeline**           | `watching → registered → building → submitted → archived`. Know exactly where every hackathon stands without opening ten tabs.                                     |
+| **Per-hackathon tasks**       | Break each event into checklists with due dates. No more "oh I still need a demo video" at 23:55.                                                                  |
+| **Priority + deadline radar** | `critical / high / medium / low` tags plus registration and submission deadlines. The right thing surfaces at the right time.                                      |
+| **Asset links**               | Pin GitHub repos, pitch decks, demo videos and dataset cards directly to the hackathon card. Everything lives in one place.                                        |
+| **Built for speed**           | Keyboard-friendly, no bloat. Open, capture, close. Back to hacking.                                                                                                |
 
 ---
 
@@ -55,6 +55,7 @@ bun run build
 > Hackathons are already chaotic. Your tooling shouldn't be.
 
 Hackbook is opinionated:
+
 - One screen, not a dashboard with twenty widgets.
 - Capture first, organise later. Speed beats perfection.
 - Deadlines are treated as hard constraints, not suggestions.
