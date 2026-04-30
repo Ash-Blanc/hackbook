@@ -8,13 +8,13 @@ import { XDiscoverPanel } from "@/components/x-discover-ui";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Hackathon Command Center" },
+      { title: "Hackbook" },
       {
         name: "description",
         content:
-          "Track hackathon submissions, deadlines, source links, tasks, and progress in one lightweight command center.",
+          "Discover, track, and ship hackathon submissions. One workspace for opportunities, deadlines, tasks, and progress.",
       },
-      { property: "og:title", content: "Hackathon Command Center" },
+      { property: "og:title", content: "Hackbook" },
       {
         property: "og:description",
         content: "A CLI-inspired workspace for staying on top of active and upcoming hackathons.",
@@ -476,28 +476,42 @@ function Index() {
       <div className="pointer-events-none fixed inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_50%_0%,var(--terminal-glow),transparent_65%)]" />
 
       <section className="relative mx-auto flex w-full max-w-7xl flex-col gap-5 px-3 py-4 sm:px-5 lg:px-6">
-        <header className="grid gap-4 rounded-md border border-border bg-card/85 p-4 shadow-[var(--shadow-terminal)] backdrop-blur md:grid-cols-[1fr_auto] md:items-end">
+        <header className="grid gap-4 rounded-lg border border-border bg-card/90 p-5 shadow-[var(--shadow-terminal)] backdrop-blur md:grid-cols-[1fr_auto] md:items-end">
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2 font-mono text-xs text-muted-foreground">
-              <span className="rounded-sm border border-border bg-secondary px-2 py-1 text-accent">
-                ~/hackathons
+              <span className="rounded-md border border-border bg-secondary px-2 py-1 text-accent">
+                ~/hackbook
               </span>
               <span>status: synced locally</span>
-              <span>mode: in-app reminders</span>
+              <span className="text-accent">mode: discover · track · ship</span>
             </div>
-            <h1 className="font-mono text-3xl font-semibold leading-tight text-foreground sm:text-5xl">
-              hackathonctl
-              <span className="block text-accent">track --active --deadline-aware</span>
+            <h1 className="font-mono text-4xl font-bold leading-tight text-foreground sm:text-6xl tracking-tight">
+              hackbook
+              <span className="block text-xl sm:text-2xl font-medium text-accent mt-1 opacity-90">
+                track --active --deadline-aware
+              </span>
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
               One dense workspace for opportunities, build progress, task debt, source links, and
               submission readiness.
             </p>
           </div>
-          <div className="rounded-md border border-border bg-secondary p-3 font-mono text-xs text-muted-foreground">
-            <div className="text-accent">$ next_action</div>
-            <div className="mt-2 text-foreground">close {urgentCount} urgent loops</div>
-            <div className="mt-1">today: Apr 25, 2026</div>
+          <div className="rounded-lg border border-border bg-secondary/80 p-4 font-mono text-xs text-muted-foreground shadow-sm">
+            <div className="flex items-center gap-2 text-accent">
+              <span className="inline-block h-2 w-2 rounded-full bg-accent animate-pulse" />$
+              next_action
+            </div>
+            <div className="mt-2 text-foreground font-semibold">
+              close {urgentCount} urgent loops
+            </div>
+            <div className="mt-1 opacity-70">
+              today:{" "}
+              {new Date().toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </div>
           </div>
         </header>
 
@@ -551,16 +565,16 @@ function Index() {
                     <button
                       key={hackathon.id}
                       onClick={() => setSelectedId(hackathon.id)}
-                      className={`group rounded-md border p-4 text-left transition hover:-translate-y-0.5 hover:border-ring hover:bg-secondary ${
+                      className={`group rounded-lg border p-5 text-left transition hover:-translate-y-0.5 hover:border-ring hover:bg-secondary/80 ${
                         selectedHackathon.id === hackathon.id
-                          ? "border-ring bg-secondary"
+                          ? "border-ring bg-secondary/80 shadow-sm"
                           : "border-border bg-card"
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-mono text-xs text-accent">
+                            <span className="font-mono text-xs text-accent uppercase tracking-wider">
                               {hackathon.platform}
                             </span>
                             <Badge>{hackathon.status}</Badge>
@@ -576,29 +590,37 @@ function Index() {
                               {hackathon.priority}
                             </Badge>
                           </div>
-                          <h2 className="mt-2 font-mono text-lg font-semibold text-foreground">
+                          <h2 className="mt-2 font-mono text-lg font-semibold text-foreground truncate">
                             {hackathon.title}
                           </h2>
                           <p className="mt-1 text-sm text-muted-foreground">{hackathon.theme}</p>
                         </div>
                         <Badge tone={urgent.tone}>{urgent.command}</Badge>
                       </div>
-                      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                      <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                         <div>
-                          <div className="mb-1 flex justify-between font-mono text-xs text-muted-foreground">
+                          <div className="mb-1.5 flex justify-between font-mono text-xs text-muted-foreground">
                             <span>progress</span>
-                            <span>{percent}%</span>
+                            <span
+                              className={
+                                percent === 100 ? "text-success font-semibold" : "text-foreground"
+                              }
+                            >
+                              {percent}%
+                            </span>
                           </div>
-                          <div className="h-2 rounded-sm bg-muted">
+                          <div className="h-2.5 rounded-full bg-muted overflow-hidden">
                             <div
-                              className="h-full rounded-sm bg-primary"
+                              className={`h-full rounded-full transition-all duration-500 ${percent === 100 ? "bg-success" : "bg-primary"}`}
                               style={{ width: `${percent}%` }}
                             />
                           </div>
                         </div>
-                        <div className="font-mono text-xs text-muted-foreground">
+                        <div className="font-mono text-xs text-muted-foreground bg-secondary/60 rounded-md px-2 py-1">
                           submit:{" "}
-                          <span className="text-foreground">{hackathon.submissionDeadline}</span>
+                          <span className="text-foreground font-medium">
+                            {hackathon.submissionDeadline}
+                          </span>
                         </div>
                       </div>
                     </button>
@@ -676,19 +698,33 @@ function Index() {
                   return (
                     <div
                       key={`${item.hackathon.id}-${item.type}`}
-                      className="rounded-md border border-border bg-secondary p-3"
+                      className="rounded-lg border border-border bg-card p-4 transition hover:bg-secondary/60"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-mono text-xs text-accent">{item.type} deadline</div>
-                          <div className="mt-1 text-sm font-semibold text-foreground">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-mono text-xs text-accent uppercase tracking-wider">
+                            {item.type} deadline
+                          </div>
+                          <div className="mt-1 text-sm font-semibold text-foreground truncate">
                             {item.hackathon.title}
                           </div>
                         </div>
                         <Badge tone={urgent.tone}>{urgent.label}</Badge>
                       </div>
-                      <div className="mt-2 font-mono text-xs text-muted-foreground">
-                        {item.date} · {urgent.command}
+                      <div className="mt-2 font-mono text-xs text-muted-foreground flex items-center gap-2">
+                        <span>{item.date}</span>
+                        <span className="text-border">·</span>
+                        <span
+                          className={
+                            urgent.tone === "danger"
+                              ? "text-destructive font-semibold"
+                              : urgent.tone === "warning"
+                                ? "text-warning"
+                                : ""
+                          }
+                        >
+                          {urgent.command}
+                        </span>
                       </div>
                     </div>
                   );
@@ -697,12 +733,32 @@ function Index() {
             </Panel>
 
             <Panel title="submit --progress" action={selectedHackathon.title}>
-              <div className="mb-4 rounded-md border border-border bg-secondary p-3">
-                <div className="font-mono text-xs text-accent">selected</div>
-                <h2 className="mt-1 font-mono text-xl font-semibold text-foreground">
+              <div className="mb-4 rounded-lg border border-border bg-secondary/60 p-4">
+                <div className="flex items-center gap-2 font-mono text-xs text-accent">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
+                  selected
+                </div>
+                <h2 className="mt-2 font-mono text-xl font-semibold text-foreground truncate">
                   {selectedHackathon.title}
                 </h2>
-                <p className="mt-2 text-sm text-muted-foreground">{selectedHackathon.notes}</p>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                  {selectedHackathon.notes}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Badge tone="info">{selectedHackathon.platform}</Badge>
+                  <Badge
+                    tone={
+                      selectedHackathon.priority === "critical"
+                        ? "danger"
+                        : selectedHackathon.priority === "high"
+                          ? "warning"
+                          : "muted"
+                    }
+                  >
+                    {selectedHackathon.priority}
+                  </Badge>
+                  <Badge>{selectedHackathon.status}</Badge>
+                </div>
               </div>
               <div className="grid gap-2">
                 {selectedHackathon.tasks.map((task) => {
@@ -710,17 +766,17 @@ function Index() {
                   return (
                     <label
                       key={task.id}
-                      className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-card p-3 transition hover:bg-secondary"
+                      className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card p-3 transition hover:bg-secondary/60"
                     >
                       <input
                         type="checkbox"
                         checked={task.done}
                         onChange={() => toggleTask(selectedHackathon.id, task.id)}
-                        className="mt-1 h-4 w-4 accent-[var(--primary)]"
+                        className="mt-1 h-4 w-4 accent-[var(--primary)] cursor-pointer"
                       />
                       <span className="min-w-0 flex-1">
                         <span
-                          className={`block text-sm ${task.done ? "text-muted-foreground line-through" : "text-foreground"}`}
+                          className={`block text-sm leading-snug ${task.done ? "text-muted-foreground line-through opacity-70" : "text-foreground"}`}
                         >
                           {task.label}
                         </span>
@@ -772,13 +828,32 @@ function Metric({
   command: string;
   tone?: "default" | "warning" | "danger" | "success";
 }) {
+  const toneBorder =
+    tone === "danger"
+      ? "border-l-destructive"
+      : tone === "warning"
+        ? "border-l-warning"
+        : tone === "success"
+          ? "border-l-success"
+          : "border-l-primary";
+  const toneText =
+    tone === "danger"
+      ? "text-destructive"
+      : tone === "warning"
+        ? "text-warning"
+        : tone === "success"
+          ? "text-success"
+          : "text-primary";
+
   return (
-    <div className="rounded-md border border-border bg-card/85 p-4 shadow-[var(--shadow-terminal)] backdrop-blur">
+    <div
+      className={`rounded-lg border border-border bg-card/90 p-4 shadow-[var(--shadow-terminal)] backdrop-blur border-l-4 ${toneBorder} transition hover:-translate-y-0.5 hover:border-ring`}
+    >
       <div className="flex items-center justify-between gap-2 font-mono text-xs text-muted-foreground">
         <span>{label}</span>
         <Badge tone={tone === "default" ? "muted" : tone}>{command}</Badge>
       </div>
-      <div className="mt-4 font-mono text-4xl font-semibold text-foreground">{value}</div>
+      <div className={`mt-4 font-mono text-4xl font-semibold ${toneText}`}>{value}</div>
     </div>
   );
 }
@@ -793,9 +868,12 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-md border border-border bg-card/85 p-4 shadow-[var(--shadow-terminal)] backdrop-blur">
+    <section className="rounded-lg border border-border bg-card/90 p-5 shadow-[var(--shadow-terminal)] backdrop-blur">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-        <h2 className="font-mono text-sm font-semibold text-foreground">{title}</h2>
+        <h2 className="font-mono text-sm font-semibold text-foreground flex items-center gap-2">
+          <span className="inline-block h-1.5 w-1.5 rounded-sm bg-accent opacity-60" />
+          {title}
+        </h2>
         <span className="font-mono text-xs text-muted-foreground">{action}</span>
       </div>
       {children}

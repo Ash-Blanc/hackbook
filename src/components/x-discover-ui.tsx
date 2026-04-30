@@ -11,9 +11,12 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-md border border-border bg-card/85 p-4 shadow-[var(--shadow-terminal)] backdrop-blur">
+    <section className="rounded-lg border border-border bg-card/90 p-5 shadow-[var(--shadow-terminal)] backdrop-blur">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-        <h2 className="font-mono text-sm font-semibold text-foreground">{title}</h2>
+        <h2 className="font-mono text-sm font-semibold text-foreground flex items-center gap-2">
+          <span className="inline-block h-1.5 w-1.5 rounded-sm bg-accent opacity-60" />
+          {title}
+        </h2>
         <span className="font-mono text-xs text-muted-foreground">{action}</span>
       </div>
       {children}
@@ -126,19 +129,8 @@ export function XDiscoverPanel({
     timeLeft: string;
   }) => void;
 }) {
-  const {
-    items,
-    loading,
-    error,
-    provider,
-    setProvider,
-    query,
-    setQuery,
-    hasNext,
-    search,
-    removeItem,
-    clear,
-  } = useXDiscover();
+  const { items, loading, error, query, setQuery, hasNext, search, removeItem, clear } =
+    useXDiscover();
 
   function importTweet(tweet: XSearchTweet) {
     const url = tweet.urls[0] || tweet.source || "";
@@ -191,22 +183,14 @@ export function XDiscoverPanel({
   }
 
   return (
-    <Panel title="import --x" action="twitterapi.io / scrapebadger">
-      <div className="mb-3 grid gap-2 md:grid-cols-[1fr_auto]">
+    <Panel title="import --x" action="scan, extract, track">
+      <div className="mb-3">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder='query: hackathon OR "register now" min_faves:3'
-          className="min-h-10 rounded-md border border-input bg-input px-3 font-mono text-sm text-foreground outline-none transition focus:border-ring"
+          className="min-h-10 rounded-md border border-input bg-input px-3 font-mono text-sm text-foreground outline-none transition focus:border-ring w-full"
         />
-        <select
-          value={provider}
-          onChange={(e) => setProvider(e.target.value as "twitterapi" | "scrapebadger")}
-          className="min-h-10 rounded-md border border-input bg-input px-3 font-mono text-sm text-foreground outline-none transition focus:border-ring"
-        >
-          <option value="twitterapi">twitterapi.io</option>
-          <option value="scrapebadger">scrapebadger</option>
-        </select>
       </div>
 
       <div className="mb-3 flex flex-wrap gap-2">
@@ -215,7 +199,7 @@ export function XDiscoverPanel({
           disabled={loading}
           className="min-h-9 rounded-md border border-primary bg-primary px-3 font-mono text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
         >
-          search --x
+          {loading ? "scanning..." : "search --x"}
         </button>
         {hasNext && (
           <button
@@ -236,12 +220,6 @@ export function XDiscoverPanel({
         )}
       </div>
 
-      {loading && (
-        <div className="py-4 text-center font-mono text-xs text-muted-foreground">
-          scanning X...
-        </div>
-      )}
-
       {error && (
         <div className="mb-3 rounded-md border border-destructive bg-destructive/10 p-3 font-mono text-xs text-destructive">
           error: {error}
@@ -256,35 +234,44 @@ export function XDiscoverPanel({
         )}
 
         {items.map((item) => (
-          <div key={item.id} className="rounded-md border border-border bg-secondary p-3">
-            <div className="flex flex-wrap items-start justify-between gap-2">
+          <div
+            key={item.id}
+            className="rounded-lg border border-border bg-card p-4 transition hover:bg-secondary/60"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone="info">@{item.username}</Badge>
                   <Badge tone="muted">
                     ♥ {item.likeCount} · ↻ {item.retweetCount}
                   </Badge>
-                  {item.urls.length > 0 && <Badge tone="success">{item.urls.length} link</Badge>}
+                  {item.urls.length > 0 && (
+                    <Badge tone="success">
+                      {item.urls.length} link{item.urls.length > 1 ? "s" : ""}
+                    </Badge>
+                  )}
                 </div>
-                <p className="mt-1.5 text-sm text-foreground line-clamp-3">{item.text}</p>
+                <p className="mt-2 text-sm text-foreground line-clamp-3 leading-relaxed">
+                  {item.text}
+                </p>
               </div>
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1.5">
                 <button
                   onClick={() => importTweet(item)}
-                  className="rounded-md border border-success bg-success/10 px-2 py-1 font-mono text-[11px] font-semibold text-success transition hover:bg-success/20"
+                  className="rounded-md border border-success bg-success/10 px-2.5 py-1.5 font-mono text-[11px] font-semibold text-success transition hover:bg-success/20"
                 >
                   import
                 </button>
                 <button
                   onClick={() => removeItem(item.id)}
-                  className="rounded-md border border-border bg-muted px-2 py-1 font-mono text-[11px] text-muted-foreground transition hover:bg-secondary"
+                  className="rounded-md border border-border bg-muted px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground transition hover:bg-secondary"
                 >
                   dismiss
                 </button>
               </div>
             </div>
             {item.urls.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
+              <div className="mt-3 flex flex-wrap gap-1.5">
                 {item.urls.map((url) => (
                   <a
                     key={url}
@@ -300,7 +287,7 @@ export function XDiscoverPanel({
               </div>
             )}
             {item.hashtags.length > 0 && (
-              <div className="mt-1.5 flex flex-wrap gap-1">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {item.hashtags.map((tag) => (
                   <span key={tag} className="font-mono text-[11px] text-muted-foreground">
                     #{tag}
