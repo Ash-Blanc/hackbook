@@ -159,3 +159,180 @@ export const fetchDevfolioHackathons = createServerFn({ method: "GET" }).handler
     timeLeft: string;
   }>;
 });
+
+// ── X / Twitter Search ──
+
+export type XSearchTweet = {
+  id: string;
+  text: string;
+  createdAt: string;
+  username: string;
+  userDisplayName: string;
+  likeCount: number;
+  retweetCount: number;
+  replyCount: number;
+  urls: string[];
+  hashtags: string[];
+  source: string; // tweet URL
+};
+
+function extractUrlsFromTweet(tweet: Record<string, unknown>): string[] {
+  const urls: string[] = [];
+  // TwitterAPI.io format
+  if (Array.isArray(tweet.urls)) {
+    for (const u of tweet.urls) {
+      if (typeof u === "object" && u !== null) {
+        const expanded = (u as Record<string, unknown>).expanded_url;
+        const display = (u as Record<string, unknown>).display_url;
+        if (typeof expanded === "string" && expanded) urls.push(expanded);
+        else if (typeof display === "string" && display) urls.push(`https://${display}`);
+      }
+    }
+  }
+  // ScrapeBadger format
+  if (Array.isArray(tweet.urls)) {
+    for (const u of tweet.urls) {
+      if (typeof u === "object" && u !== null) {
+        const expanded = (u as Record<string, unknown>).expanded_url;
+        if (typeof expanded === "string" && expanded && !urls.includes(expanded))
+          urls.push(expanded);
+      }
+    }
+  }
+  // Fallback: extract from text
+  const text = String(tweet.text || tweet.full_text || "");
+  const found = text.match(/https?:\/\/[^\s]+/g);
+  if (found) {
+    for (const u of found) {
+      const clean = u.replace(/[),.;]+$/, "");
+      if (!urls.includes(clean)) urls.push(clean);
+    }
+  }
+  return urls;
+}
+
+function extractHashtagsFromTweet(tweet: Record<string, unknown>): string[] {
+  const tags: string[] = [];
+  if (Array.isArray(tweet.hashtags)) {
+    for (const h of tweet.hashtags) {
+      if (typeof h === "object" && h !== null) {
+        const text = (h as Record<string, unknown>).text;
+        if (typeof text === "string") tags.push(text.toLowerCase());
+      }
+    }
+  }
+  return tags;
+}
+
+function normalizeTweetFromTwitterAPI(raw: Record<string, unknown>): XSearchTweet {
+  const urls = extractUrlsFromTweet(raw);
+  const hashtags = extractHashtagsFromTweet(raw);
+  const authorObj =
+    typeof raw.author === "object" && raw.author !== null
+      ? (raw.author as Record<string, unknown>)
+      : {};
+  const author = String(raw.userName || authorObj.userName || "unknown");
+  const displayName = String(raw.name || authorObj.name || author);
+  const tweetId = String(raw.id || "");
+  const tweetUrl = tweetId ? `https://x.com/${author}/status/${tweetId}` : "";
+
+  return {
+    id: tweetId,
+    text: String(raw.text || ""),
+    createdAt: String(raw.createdAt || raw.created_at || ""),
+    username: author,
+    userDisplayName: displayName,
+    likeCount: Number(raw.likeCount || raw.favorite_count || 0),
+    retweetCount: Number(raw.retweetCount || raw.retweet_count || 0),
+    replyCount: Number(raw.replyCount || raw.reply_count || 0),
+    urls,
+    hashtags,
+    source: tweetUrl,
+  };
+}
+
+function normalizeTweetFromScrapeBadger(raw: Record<string, unknown>): XSearchTweet {
+  const urls = extractUrlsFromTweet(raw);
+  const hashtags = extractHashtagsFromTweet(raw);
+  const username = String(raw.username || raw.user_id || "unknown");
+  const displayName = String(raw.user_name || username);
+  const tweetId = String(raw.id || "");
+  const tweetUrl = tweetId ? `https://x.com/${username}/status/${tweetId}` : "";
+
+  return {
+    id: tweetId,
+    text: String(raw.full_text || raw.text || ""),
+    createdAt: String(raw.created_at || ""),
+    username,
+    userDisplayName: displayName,
+    likeCount: Number(raw.favorite_count || raw.likeCount || 0),
+    retweetCount: Number(raw.retweet_count || raw.retweetCount || 0),
+    replyCount: Number(raw.reply_count || raw.replyCount || 0),
+    urls,
+    hashtags,
+    source: tweetUrl,
+  };
+}
+
+export const searchXTwitterAPI = createServerFn({ method: "GET" })
+  .inputValidator((data: { query: string; cursor?: string }) => data)
+  .handler(async ({ data }) => {
+    const apiKey = process.env.TWITTERAPI_IO_KEY;
+    if (!apiKey) throw new Error("TWITTERAPI_IO_KEY not configured");
+
+    const params = new URLSearchParams({
+      query: data.query,
+      queryType: "Latest",
+      cursor: data.cursor || "",
+    });
+
+    const res = await fetch(
+      `https://api.twitterapi.io/twitter/tweet/advanced_search?${params.toString()}`,
+      {
+        headers: { "X-API-Key": apiKey },
+      },
+    );
+
+    if (!res.ok)
+      throw new Error(`TwitterAPI.io error: ${res.status} ${await res.text().catch(() => "")}`);
+    const json = await res.json();
+
+    const tweets: Record<string, unknown>[] = json.tweets || [];
+    return {
+      tweets: tweets.map(normalizeTweetFromTwitterAPI),
+      hasNextPage: Boolean(json.has_next_page),
+      nextCursor: String(json.next_cursor || ""),
+    };
+  });
+
+export const searchXScrapeBadger = createServerFn({ method: "GET" })
+  .inputValidator((data: { query: string; cursor?: string }) => data)
+  .handler(async ({ data }) => {
+    const apiKey = process.env.SCRAPEBADGER_API_KEY;
+    if (!apiKey) throw new Error("SCRAPEBADGER_API_KEY not configured");
+
+    const params = new URLSearchParams({
+      query: data.query,
+      query_type: "Latest",
+      count: "20",
+    });
+    if (data.cursor) params.set("cursor", data.cursor);
+
+    const res = await fetch(
+      `https://scrapebadger.com/v1/twitter/tweets/advanced_search?${params.toString()}`,
+      {
+        headers: { "x-api-key": apiKey },
+      },
+    );
+
+    if (!res.ok)
+      throw new Error(`ScrapeBadger error: ${res.status} ${await res.text().catch(() => "")}`);
+    const json = await res.json();
+
+    const tweets: Record<string, unknown>[] = json.data || [];
+    return {
+      tweets: tweets.map(normalizeTweetFromScrapeBadger),
+      hasNextPage: Boolean(json.next_cursor),
+      nextCursor: String(json.next_cursor || ""),
+    };
+  });

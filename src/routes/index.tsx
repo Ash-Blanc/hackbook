@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { z } from "zod";
 import { DiscoverPanel } from "@/components/discover-ui";
 import type { DiscoveredHackathon } from "@/components/discover-panel";
+import { XDiscoverPanel } from "@/components/x-discover-ui";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -664,6 +665,7 @@ function Index() {
             </Panel>
 
             <DiscoverPanel onImport={importDiscovered} />
+            <XDiscoverPanel onImport={importDiscovered} />
           </div>
 
           <aside className="space-y-5">
